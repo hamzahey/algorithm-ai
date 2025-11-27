@@ -2,8 +2,10 @@
 
 import { Button } from "@/components/ui/button"
 import Link from "next/link"
+import { useRouter } from "next/navigation"
 import { Briefcase, Plus, Edit2, Trash2, LogOut } from "lucide-react"
 import { useState } from "react"
+import { signOut } from "@/lib/api"
 
 // Mock user jobs
 const MOCK_USER_JOBS = [
@@ -31,6 +33,18 @@ const MOCK_USER_JOBS = [
 
 export default function DashboardPage() {
   const [jobs, setJobs] = useState(MOCK_USER_JOBS)
+  const [isSigningOut, setIsSigningOut] = useState(false)
+  const router = useRouter()
+
+  const handleSignOut = async () => {
+    setIsSigningOut(true)
+    try {
+      await signOut()
+      router.replace("/auth/login")
+    } catch {
+      setIsSigningOut(false)
+    }
+  }
 
   const handleDelete = (id: string) => {
     setJobs(jobs.filter((job) => job.id !== id))
@@ -51,9 +65,14 @@ export default function DashboardPage() {
                 Browse Jobs
               </Button>
             </Link>
-            <Button variant="outline" className="border-border hover:bg-muted gap-2 bg-transparent">
+            <Button
+              variant="outline"
+              className="border-border hover:bg-muted gap-2 bg-transparent"
+              onClick={handleSignOut}
+              disabled={isSigningOut}
+            >
               <LogOut className="w-4 h-4" />
-              Logout
+              {isSigningOut ? "Signing out..." : "Logout"}
             </Button>
           </div>
         </div>

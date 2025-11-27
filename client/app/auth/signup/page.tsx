@@ -3,24 +3,35 @@
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import Link from "next/link"
+import { useRouter } from "next/navigation"
 import { Briefcase } from "lucide-react"
 import { type FormEvent, useState } from "react"
+import { register } from "@/lib/api"
 
 export default function SignupPage() {
+  const router = useRouter()
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [name, setName] = useState("")
   const [isLoading, setIsLoading] = useState(false)
-  const [accountType, setAccountType] = useState<"jobseeker" | "employer">("jobseeker")
+  const [accountType, setAccountType] = useState<"jobseeker" | "employer">(
+    "jobseeker",
+  )
+  const [error, setError] = useState<string | null>(null)
 
-  const handleSubmit = (e: FormEvent) => {
+  const handleSubmit = async (e: FormEvent) => {
     e.preventDefault()
     setIsLoading(true)
-    // Simulate signup
-    setTimeout(() => {
+    setError(null)
+
+    try {
+      await register({ email, password, name })
+      router.replace("/dashboard")
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Unable to create account")
+    } finally {
       setIsLoading(false)
-      // Redirect would happen here
-    }, 1500)
+    }
   }
 
   return (
@@ -125,6 +136,11 @@ export default function SignupPage() {
               >
                 {isLoading ? "Creating account..." : "Create Account"}
               </Button>
+              {error && (
+                <p className="text-sm text-destructive mt-2" role="alert">
+                  {error}
+                </p>
+              )}
             </form>
 
             <div className="relative">

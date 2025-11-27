@@ -3,22 +3,31 @@
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import Link from "next/link"
+import { useRouter } from "next/navigation"
 import { Briefcase } from "lucide-react"
 import { type FormEvent, useState } from "react"
+import { login } from "@/lib/api"
 
 export default function LoginPage() {
+  const router = useRouter()
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [isLoading, setIsLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
-  const handleSubmit = (e: FormEvent) => {
+  const handleSubmit = async (e: FormEvent) => {
     e.preventDefault()
     setIsLoading(true)
-    // Simulate login
-    setTimeout(() => {
+    setError(null)
+
+    try {
+      await login({ email, password })
+      router.replace("/dashboard")
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Unable to sign in")
+    } finally {
       setIsLoading(false)
-      // Redirect would happen here
-    }, 1500)
+    }
   }
 
   return (
@@ -78,6 +87,11 @@ export default function LoginPage() {
               >
                 {isLoading ? "Signing in..." : "Sign In"}
               </Button>
+              {error && (
+                <p className="text-sm text-destructive mt-2" role="alert">
+                  {error}
+                </p>
+              )}
             </form>
 
             <div className="relative">
