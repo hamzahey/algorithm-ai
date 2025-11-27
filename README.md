@@ -137,6 +137,342 @@ Example response:
 
 Use this endpoint to monitor service health in production and verify database connectivity during deployments.
 
+## API Documentation
+
+All API endpoints are prefixed with the base URL: `https://algorithm-ai-production-d3e1.up.railway.app`
+
+### Authentication
+
+All authenticated endpoints require a JWT token in the `Authorization` header:
+```
+Authorization: Bearer <token>
+```
+
+#### POST `/auth/register`
+Register a new user account.
+
+**Request Body:**
+```json
+{
+  "email": "user@example.com",
+  "name": "John Doe",
+  "password": "password123"
+}
+```
+
+**Response:** `200 OK`
+```json
+{
+  "user": {
+    "id": "uuid",
+    "email": "user@example.com",
+    "name": "John Doe",
+    "isAdmin": false,
+    "createdAt": "2025-01-27T12:00:00.000Z",
+    "updatedAt": "2025-01-27T12:00:00.000Z"
+  },
+  "accessToken": "jwt-token-here"
+}
+```
+
+#### POST `/auth/login`
+Authenticate and receive a JWT token.
+
+**Request Body:**
+```json
+{
+  "email": "user@example.com",
+  "password": "password123"
+}
+```
+
+**Response:** `200 OK` (same format as register)
+
+#### POST `/auth/signout`
+Sign out the current user. Requires authentication.
+
+**Response:** `200 OK`
+```json
+{
+  "message": "Signed out user@example.com"
+}
+```
+
+### Jobs (Authenticated)
+
+All job management endpoints require authentication and return jobs owned by the authenticated user.
+
+#### GET `/jobs`
+Get all jobs created by the authenticated user.
+
+**Response:** `200 OK`
+```json
+[
+  {
+    "id": "uuid",
+    "title": "Software Engineer",
+    "company": "Tech Corp",
+    "description": "Job description...",
+    "salary": "$100k-150k",
+    "tags": ["javascript", "react"],
+    "status": "ACTIVE",
+    "approved": true,
+    "createdAt": "2025-01-27T12:00:00.000Z",
+    "updatedAt": "2025-01-27T12:00:00.000Z"
+  }
+]
+```
+
+#### GET `/jobs/:id`
+Get a specific job by ID (must be owned by the authenticated user).
+
+#### POST `/jobs`
+Create a new job posting.
+
+**Request Body:**
+```json
+{
+  "title": "Software Engineer",
+  "company": "Tech Corp",
+  "description": "We are looking for...",
+  "salary": "$100k-150k",
+  "tags": ["javascript", "react", "nodejs"]
+}
+```
+
+#### PATCH `/jobs/:id`
+Update an existing job (must be owned by the authenticated user).
+
+**Request Body:** (all fields optional)
+```json
+{
+  "title": "Senior Software Engineer",
+  "tags": ["javascript", "react", "typescript"]
+}
+```
+
+#### DELETE `/jobs/:id`
+Delete a job (must be owned by the authenticated user).
+
+**Response:** `200 OK`
+```json
+{
+  "message": "Job deleted"
+}
+```
+
+### Public Job Discovery
+
+#### GET `/jobs/search`
+Search and filter public job listings. Only returns jobs with `approved: true`.
+
+**Query Parameters:**
+- `search` (optional): Search term for title, company, description, or salary
+- `tags` (optional): Comma-separated list of tags to filter by
+- `mode` (optional): `'and'` (default) or `'or'` - tag matching mode
+
+**Example:** `/jobs/search?search=engineer&tags=javascript,react&mode=or`
+
+**Response:** `200 OK` (array of job listings, same format as authenticated jobs endpoint)
+
+### Admin Endpoints
+
+All admin endpoints require authentication and `isAdmin: true` role.
+
+#### GET `/admin/users`
+Get all users with their job counts.
+
+**Response:** `200 OK`
+```json
+[
+  {
+    "id": "uuid",
+    "email": "user@example.com",
+    "name": "John Doe",
+    "isAdmin": false,
+    "lastLoginAt": "2025-01-27T12:00:00.000Z",
+    "createdAt": "2025-01-27T12:00:00.000Z",
+    "updatedAt": "2025-01-27T12:00:00.000Z",
+    "jobCount": 5
+  }
+]
+```
+
+#### GET `/admin/jobs`
+Get all jobs for moderation.
+
+**Query Parameters:**
+- `approved` (optional): `'true'` or `'false'` to filter by approval status
+
+**Response:** `200 OK` (array of jobs with user information)
+
+#### PATCH `/admin/jobs/:id/approve`
+Approve or reject a job posting.
+
+**Request Body:**
+```json
+{
+  "approved": true
+}
+```
+
+**Response:** `200 OK`
+```json
+{
+  "success": true
+}
+```
+
+#### DELETE `/admin/jobs/:id`
+Delete a job as an admin (bypasses ownership checks).
+
+**Response:** `200 OK`
+```json
+{
+  "success": true
+}
+```
+
+### Error Responses
+
+All endpoints may return error responses:
+
+**400 Bad Request:**
+```json
+{
+  "message": "Validation error message",
+  "error": "Bad Request"
+}
+```
+
+**401 Unauthorized:**
+```json
+{
+  "message": "Invalid credentials",
+  "error": "Unauthorized"
+}
+```
+
+**403 Forbidden:**
+```json
+{
+  "message": "Not authorized to modify this job",
+  "error": "Forbidden"
+}
+```
+
+**404 Not Found:**
+```json
+{
+  "message": "Job not found",
+  "error": "Not Found"
+}
+```
+
+## Architecture Decisions and Reasoning
+
+### Monorepo Structure
+
+**Decision**: Separate `client/` and `server/` directories with independent `package.json` files.
+
+**Reasoning**:
+- Clear separation of concerns between frontend and backend
+- Independent dependency management (Next.js vs NestJS ecosystems)
+- Easier to deploy services separately on Railway
+- Allows different teams to work on frontend/backend independently
+- Each service can have its own build and deployment pipeline
+
+### Technology Stack
+
+**Frontend: Next.js 16 + React 19**
+- **Reasoning**: Server-side rendering for better SEO, built-in routing, excellent developer experience
+- **Trade-off**: Slightly more complex than pure client-side React, but provides better performance and SEO
+
+**Backend: NestJS**
+- **Reasoning**: TypeScript-first, modular architecture, built-in dependency injection, excellent for scalable APIs
+- **Trade-off**: More boilerplate than Express, but provides better structure and maintainability
+
+**Database: PostgreSQL + Prisma**
+- **Reasoning**: 
+  - PostgreSQL: Robust, ACID-compliant, excellent for relational data
+  - Prisma: Type-safe database access, excellent migrations, auto-generated TypeScript types
+- **Trade-off**: Prisma adds a layer of abstraction, but provides type safety and better developer experience
+
+### Authentication Strategy
+
+**Decision**: JWT tokens with Authorization headers (migrated from cookies).
+
+**Initial Approach (Cookies)**:
+- Used HTTP-only cookies for security
+- Worked perfectly in local development (same origin)
+- Failed in production due to cross-origin cookie blocking
+
+**Final Approach (Authorization Headers)**:
+- Store JWT in `localStorage` on frontend
+- Send token in `Authorization: Bearer <token>` header
+- Works reliably across different domains
+- **Security consideration**: `localStorage` is accessible to JavaScript (unlike HTTP-only cookies), but XSS protection is handled via React's built-in escaping and proper input validation
+
+**Reasoning for Migration**:
+- Modern browsers increasingly block third-party cookies for privacy
+- Authorization headers are standard practice for SPAs
+- More explicit and easier to debug
+- No dependency on browser cookie policies
+
+### Job Approval System
+
+**Decision**: Jobs require admin approval before appearing in public search (`approved: true`).
+
+**Reasoning**:
+- Prevents spam and inappropriate content
+- Allows quality control before jobs are visible to job seekers
+- Jobs are created with `approved: true` by default (can be changed via migration)
+- Admin can approve/reject jobs via `/admin/jobs` endpoint
+
+**Implementation**:
+- `approved` field in Job model (boolean, default `true`)
+- Public search (`/jobs/search`) only returns approved jobs
+- User's own jobs (`/jobs`) show all jobs regardless of approval status
+- Admin endpoints allow filtering and managing approval status
+
+### Tag System
+
+**Decision**: Tags stored as string arrays, case-insensitive matching.
+
+**Reasoning**:
+- Simple array storage in PostgreSQL
+- Case-insensitive normalization ensures consistent matching
+- Tags are normalized to lowercase on create/update
+- Search supports both `AND` and `OR` tag matching modes
+
+**Implementation**:
+- Tags normalized to lowercase in `JobsService.normalizeTags()`
+- Frontend displays tags as-is but sends lowercase to API
+- Search queries are case-insensitive
+
+### CORS Configuration
+
+**Decision**: Allow all origins in production (`origin: true`).
+
+**Reasoning**:
+- Frontend and backend on different Railway domains
+- Authorization headers don't require specific CORS origin restrictions
+- Simplified deployment (no need to update CORS when frontend URL changes)
+- **Security note**: With Authorization headers, CORS is less critical since tokens aren't automatically sent like cookies
+
+**Alternative considered**: Whitelist specific origins, but requires updating environment variables when deploying to new domains.
+
+### Health Check Endpoint
+
+**Decision**: Expose `/health` endpoint for monitoring and diagnostics.
+
+**Reasoning**:
+- Essential for production monitoring
+- Verifies database connectivity
+- Reports environment configuration status
+- Helps debug deployment issues
+- Can be used by load balancers and monitoring tools
+
 ## Debug Notes
 
 ### Bug: Prisma TypeScript errors after adding `approved` field to Job model
