@@ -11,9 +11,10 @@ import { JobsModule } from './jobs/jobs.module';
 import { ProtectedController } from './protected/protected.controller';
 import { PrismaModule } from './prisma';
 import { AuthMiddleware } from './auth/middleware/auth.middleware';
+import { AdminModule } from './admin/admin.module';
 
 @Module({
-  imports: [PrismaModule, AuthModule, JobsModule],
+  imports: [PrismaModule, AuthModule, JobsModule, AdminModule],
   controllers: [AppController, ProtectedController],
   providers: [AppService],
 })

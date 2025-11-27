@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input"
 import Link from "next/link"
 import { Briefcase, Search, X } from "lucide-react"
 import { browseJobs } from "@/lib/api"
+import { CurrentUser, getCurrentUser } from "@/lib/session"
 
 type ApiJob = {
   id: string
@@ -26,6 +27,7 @@ export default function JobsPage() {
   const [tagOptions, setTagOptions] = useState<string[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [currentUser, setCurrentUserState] = useState<CurrentUser | null>(null)
 
   const activeFilterLabel =
     selectedTags.length > 0 ? `Tags (${matchMode.toUpperCase()})` : "Tags"
@@ -79,6 +81,10 @@ export default function JobsPage() {
     )
   }
 
+  useEffect(() => {
+    setCurrentUserState(getCurrentUser())
+  }, [])
+
   return (
     <main className="min-h-screen bg-background">
       <nav className="border-b border-border sticky top-0 bg-background/80 backdrop-blur-sm z-50">
@@ -96,6 +102,13 @@ export default function JobsPage() {
             <Link href="/auth/signup">
               <Button className="bg-primary hover:bg-primary/90 text-primary-foreground">Sign Up</Button>
             </Link>
+            {currentUser?.isAdmin && (
+              <Link href="/admin/users">
+                <Button variant="outline" className="border-border hover:bg-muted">
+                  Admin
+                </Button>
+              </Link>
+            )}
           </div>
         </div>
       </nav>

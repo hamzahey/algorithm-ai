@@ -114,5 +114,9 @@ export async function browseJobs(filters?: BrowseJobsFilters) {
   return request(`/jobs/search${buildQuery(filters)}`)
 }
 
+export async function fetchAdminUsers() {
+  return request("/admin/users")
+}
+
 export { API_BASE_URL }
 
