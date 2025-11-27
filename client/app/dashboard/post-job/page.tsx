@@ -5,24 +5,51 @@ import type React from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import Link from "next/link"
+import { useRouter } from "next/navigation"
 import { Briefcase, ArrowLeft } from "lucide-react"
 import { useState } from "react"
+import { createJob } from "@/lib/api"
 
 export default function PostJobPage() {
+  const router = useRouter()
   const [title, setTitle] = useState("")
   const [company, setCompany] = useState("")
   const [description, setDescription] = useState("")
   const [salary, setSalary] = useState("")
   const [tags, setTags] = useState("")
   const [isLoading, setIsLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsLoading(true)
-    setTimeout(() => {
+    setError(null)
+
+    const parsedTags = tags
+      .split(",")
+      .map((tag) => tag.trim())
+      .filter(Boolean)
+
+    if (!parsedTags.length) {
+      setError("Add at least one tag")
       setIsLoading(false)
-      // Redirect would happen here
-    }, 1500)
+      return
+    }
+
+    try {
+      await createJob({
+        title,
+        company,
+        description,
+        salary,
+        tags: parsedTags,
+      })
+      router.replace("/dashboard")
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Unable to publish job")
+    } finally {
+      setIsLoading(false)
+    }
   }
 
   return (
@@ -126,6 +153,11 @@ export default function PostJobPage() {
                 </Button>
               </Link>
             </div>
+            {error && (
+              <p className="text-sm text-destructive mt-3" role="alert">
+                {error}
+              </p>
+            )}
           </form>
         </div>
       </div>

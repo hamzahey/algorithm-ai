@@ -1,8 +1,19 @@
-import { Button } from "@/components/ui/button"
-import Link from "next/link"
-import { Briefcase, Search, Users, Zap } from "lucide-react"
+"use client";
+
+import { useEffect, useState } from "react";
+import { Button } from "@/components/ui/button";
+import Link from "next/link";
+import { Briefcase, Search, Users, Zap } from "lucide-react";
+import { CurrentUser, getCurrentUser } from "@/lib/session";
 
 export default function Home() {
+  const [currentUser, setCurrentUserState] = useState<CurrentUser | null | undefined>(undefined);
+
+  useEffect(() => {
+    setCurrentUserState(getCurrentUser());
+  }, []);
+
+  const showAuthLinks = currentUser === null;
   return (
     <main className="min-h-screen bg-gradient-to-br from-background via-background to-muted">
       {/* Navigation */}
@@ -13,14 +24,23 @@ export default function Home() {
             <span className="text-xl font-bold text-primary">JobHub</span>
           </Link>
           <div className="flex gap-3">
-            <Link href="/auth/login">
-              <Button variant="ghost" className="text-foreground hover:text-primary">
-                Log In
-              </Button>
-            </Link>
-            <Link href="/auth/signup">
-              <Button className="bg-primary hover:bg-primary/90 text-primary-foreground">Sign Up</Button>
-            </Link>
+            {showAuthLinks && (
+              <>
+                <Link href="/auth/login">
+                  <Button
+                    variant="ghost"
+                    className="text-foreground hover:text-primary"
+                  >
+                    Log In
+                  </Button>
+                </Link>
+                <Link href="/auth/signup">
+                  <Button className="bg-primary hover:bg-primary/90 text-primary-foreground">
+                    Sign Up
+                  </Button>
+                </Link>
+              </>
+            )}
           </div>
         </div>
       </nav>
@@ -34,18 +54,25 @@ export default function Home() {
                 Find Your <span className="text-primary">Next Opportunity</span>
               </h1>
               <p className="text-lg text-muted-foreground mt-4 leading-relaxed">
-                Discover amazing jobs from innovative companies. Search by role, skills, and more to find positions that
-                match your career goals.
+                Discover amazing jobs from innovative companies. Search by role,
+                skills, and more to find positions that match your career goals.
               </p>
             </div>
             <div className="flex gap-4 flex-wrap">
               <Link href="/jobs">
-                <Button size="lg" className="bg-primary hover:bg-primary/90 text-primary-foreground">
+                <Button
+                  size="lg"
+                  className="bg-primary hover:bg-primary/90 text-primary-foreground"
+                >
                   Browse Jobs
                 </Button>
               </Link>
-              <Link href="/auth/signup">
-                <Button size="lg" variant="outline" className="border-border hover:bg-muted bg-transparent">
+              <Link href={currentUser ? "/dashboard/post-job" : "/auth/signup"}>
+                <Button
+                  size="lg"
+                  variant="outline"
+                  className="border-border hover:bg-muted bg-transparent"
+                >
                   Post a Job
                 </Button>
               </Link>
@@ -55,23 +82,39 @@ export default function Home() {
           <div className="grid grid-cols-2 gap-4">
             <div className="bg-card border border-border rounded-xl p-6 space-y-2 hover:shadow-lg transition-shadow">
               <Search className="w-8 h-8 text-accent" />
-              <h3 className="font-semibold text-card-foreground">Smart Search</h3>
-              <p className="text-sm text-muted-foreground">Filter by title, company, and skills</p>
+              <h3 className="font-semibold text-card-foreground">
+                Smart Search
+              </h3>
+              <p className="text-sm text-muted-foreground">
+                Filter by title, company, and skills
+              </p>
             </div>
             <div className="bg-card border border-border rounded-xl p-6 space-y-2 hover:shadow-lg transition-shadow">
               <Zap className="w-8 h-8 text-accent" />
-              <h3 className="font-semibold text-card-foreground">Quick Apply</h3>
-              <p className="text-sm text-muted-foreground">Apply in seconds with your profile</p>
+              <h3 className="font-semibold text-card-foreground">
+                Quick Apply
+              </h3>
+              <p className="text-sm text-muted-foreground">
+                Apply in seconds with your profile
+              </p>
             </div>
             <div className="bg-card border border-border rounded-xl p-6 space-y-2 hover:shadow-lg transition-shadow">
               <Briefcase className="w-8 h-8 text-accent" />
-              <h3 className="font-semibold text-card-foreground">Job Listings</h3>
-              <p className="text-sm text-muted-foreground">Thousands of positions available</p>
+              <h3 className="font-semibold text-card-foreground">
+                Job Listings
+              </h3>
+              <p className="text-sm text-muted-foreground">
+                Thousands of positions available
+              </p>
             </div>
             <div className="bg-card border border-border rounded-xl p-6 space-y-2 hover:shadow-lg transition-shadow">
               <Users className="w-8 h-8 text-accent" />
-              <h3 className="font-semibold text-card-foreground">For Employers</h3>
-              <p className="text-sm text-muted-foreground">Hire top talent easily</p>
+              <h3 className="font-semibold text-card-foreground">
+                For Employers
+              </h3>
+              <p className="text-sm text-muted-foreground">
+                Hire top talent easily
+              </p>
             </div>
           </div>
         </div>
@@ -105,15 +148,26 @@ export default function Home() {
       <footer className="border-t border-border bg-muted/30 py-8">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center">
-            <p className="text-muted-foreground text-sm">© 2025 JobHub. All rights reserved.</p>
+            <p className="text-muted-foreground text-sm">
+              © 2025 JobHub. All rights reserved.
+            </p>
             <div className="flex gap-6">
-              <Link href="#" className="text-muted-foreground hover:text-foreground text-sm transition-colors">
+              <Link
+                href="#"
+                className="text-muted-foreground hover:text-foreground text-sm transition-colors"
+              >
                 Privacy
               </Link>
-              <Link href="#" className="text-muted-foreground hover:text-foreground text-sm transition-colors">
+              <Link
+                href="#"
+                className="text-muted-foreground hover:text-foreground text-sm transition-colors"
+              >
                 Terms
               </Link>
-              <Link href="#" className="text-muted-foreground hover:text-foreground text-sm transition-colors">
+              <Link
+                href="#"
+                className="text-muted-foreground hover:text-foreground text-sm transition-colors"
+              >
                 Contact
               </Link>
             </div>
@@ -121,5 +175,5 @@ export default function Home() {
         </div>
       </footer>
     </main>
-  )
+  );
 }

@@ -3,22 +3,33 @@
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import Link from "next/link"
+import { useRouter } from "next/navigation"
 import { Briefcase } from "lucide-react"
 import { type FormEvent, useState } from "react"
+import { login } from "@/lib/api"
+import { setCurrentUser } from "@/lib/session"
 
 export default function LoginPage() {
+  const router = useRouter()
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [isLoading, setIsLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
-  const handleSubmit = (e: FormEvent) => {
+  const handleSubmit = async (e: FormEvent) => {
     e.preventDefault()
     setIsLoading(true)
-    // Simulate login
-    setTimeout(() => {
+    setError(null)
+
+    try {
+      const response = await login({ email, password })
+      setCurrentUser(response.user)
+      router.replace("/dashboard")
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Unable to sign in")
+    } finally {
       setIsLoading(false)
-      // Redirect would happen here
-    }, 1500)
+    }
   }
 
   return (
@@ -78,20 +89,12 @@ export default function LoginPage() {
               >
                 {isLoading ? "Signing in..." : "Sign In"}
               </Button>
+              {error && (
+                <p className="text-sm text-destructive mt-2" role="alert">
+                  {error}
+                </p>
+              )}
             </form>
-
-            <div className="relative">
-              <div className="absolute inset-0 flex items-center">
-                <div className="w-full border-t border-border"></div>
-              </div>
-              <div className="relative flex justify-center text-sm">
-                <span className="px-2 bg-card text-muted-foreground">or</span>
-              </div>
-            </div>
-
-            <Button variant="outline" className="w-full border-border hover:bg-muted bg-transparent">
-              Continue with Google
-            </Button>
 
             <p className="text-center text-sm text-muted-foreground">
               Don't have an account?{" "}

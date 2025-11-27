@@ -3,24 +3,34 @@
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import Link from "next/link"
+import { useRouter } from "next/navigation"
 import { Briefcase } from "lucide-react"
 import { type FormEvent, useState } from "react"
+import { register } from "@/lib/api"
+import { setCurrentUser } from "@/lib/session"
 
 export default function SignupPage() {
+  const router = useRouter()
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [name, setName] = useState("")
   const [isLoading, setIsLoading] = useState(false)
-  const [accountType, setAccountType] = useState<"jobseeker" | "employer">("jobseeker")
+  const [error, setError] = useState<string | null>(null)
 
-  const handleSubmit = (e: FormEvent) => {
+  const handleSubmit = async (e: FormEvent) => {
     e.preventDefault()
     setIsLoading(true)
-    // Simulate signup
-    setTimeout(() => {
+    setError(null)
+
+    try {
+      const response = await register({ email, password, name })
+      setCurrentUser(response.user)
+      router.replace("/dashboard")
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Unable to create account")
+    } finally {
       setIsLoading(false)
-      // Redirect would happen here
-    }, 1500)
+    }
   }
 
   return (
@@ -42,29 +52,6 @@ export default function SignupPage() {
             <div className="space-y-2">
               <h1 className="text-3xl font-bold text-foreground">Get started</h1>
               <p className="text-muted-foreground">Create your JobHub account</p>
-            </div>
-
-            <div className="grid grid-cols-2 gap-3">
-              <button
-                onClick={() => setAccountType("jobseeker")}
-                className={`py-2 px-3 rounded-lg border-2 font-medium text-sm transition-colors ${
-                  accountType === "jobseeker"
-                    ? "border-primary bg-primary/10 text-primary"
-                    : "border-border text-muted-foreground hover:border-border/80"
-                }`}
-              >
-                Job Seeker
-              </button>
-              <button
-                onClick={() => setAccountType("employer")}
-                className={`py-2 px-3 rounded-lg border-2 font-medium text-sm transition-colors ${
-                  accountType === "employer"
-                    ? "border-primary bg-primary/10 text-primary"
-                    : "border-border text-muted-foreground hover:border-border/80"
-                }`}
-              >
-                Employer
-              </button>
             </div>
 
             <form onSubmit={handleSubmit} className="space-y-4">
@@ -125,20 +112,12 @@ export default function SignupPage() {
               >
                 {isLoading ? "Creating account..." : "Create Account"}
               </Button>
+              {error && (
+                <p className="text-sm text-destructive mt-2" role="alert">
+                  {error}
+                </p>
+              )}
             </form>
-
-            <div className="relative">
-              <div className="absolute inset-0 flex items-center">
-                <div className="w-full border-t border-border"></div>
-              </div>
-              <div className="relative flex justify-center text-sm">
-                <span className="px-2 bg-card text-muted-foreground">or</span>
-              </div>
-            </div>
-
-            <Button variant="outline" className="w-full border-border hover:bg-muted bg-transparent">
-              Continue with Google
-            </Button>
 
             <p className="text-center text-sm text-muted-foreground">
               Already have an account?{" "}
