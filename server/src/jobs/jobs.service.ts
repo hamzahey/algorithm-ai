@@ -3,6 +3,7 @@ import {
   ForbiddenException,
   NotFoundException,
 } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateJobDto } from './dto/create-job.dto';
 import { UpdateJobDto } from './dto/update-job.dto';
@@ -77,5 +78,49 @@ export class JobsService {
 
   async getOne(userId: string, jobId: string) {
     return this.ensureOwnership(userId, jobId);
+  }
+
+  async searchPublic(options: {
+    search?: string;
+    tags?: string[];
+    mode?: 'and' | 'or';
+  }) {
+    const { search, tags, mode = 'and' } = options;
+    const predicates: Prisma.JobWhereInput[] = [];
+
+    if (search?.trim()) {
+      const term = search.trim();
+      predicates.push({
+        OR: [
+          { title: { contains: term, mode: 'insensitive' } },
+          { company: { contains: term, mode: 'insensitive' } },
+          { description: { contains: term, mode: 'insensitive' } },
+          { salary: { contains: term, mode: 'insensitive' } },
+        ],
+      });
+    }
+
+    if (tags?.length) {
+      predicates.push({
+        tags: mode === 'or' ? { hasSome: tags } : { hasEvery: tags },
+      });
+    }
+
+    const whereClause = predicates.length ? { AND: predicates } : undefined;
+
+    return this.prismaService.prisma.job.findMany({
+      where: whereClause,
+      orderBy: { createdAt: 'desc' },
+      select: {
+        id: true,
+        title: true,
+        company: true,
+        description: true,
+        salary: true,
+        tags: true,
+        status: true,
+        createdAt: true,
+      },
+    });
   }
 }

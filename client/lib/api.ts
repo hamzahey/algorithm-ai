@@ -93,5 +93,26 @@ export async function updateJob(id: string, payload: {
   })
 }
 
+type BrowseJobsFilters = {
+  search?: string
+  tags?: string[]
+  mode?: 'and' | 'or'
+}
+
+function buildQuery(filters?: BrowseJobsFilters) {
+  if (!filters) return ''
+
+  const params = new URLSearchParams()
+  if (filters.search) params.set('search', filters.search)
+  if (filters.mode) params.set('mode', filters.mode)
+  if (filters.tags && filters.tags.length) params.set('tags', filters.tags.join(','))
+  const query = params.toString()
+  return query ? `?${query}` : ''
+}
+
+export async function browseJobs(filters?: BrowseJobsFilters) {
+  return request(`/jobs/search${buildQuery(filters)}`)
+}
+
 export { API_BASE_URL }
 
