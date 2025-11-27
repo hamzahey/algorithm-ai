@@ -7,6 +7,7 @@ import { useRouter } from "next/navigation"
 import { Briefcase } from "lucide-react"
 import { type FormEvent, useState } from "react"
 import { register } from "@/lib/api"
+import { setCurrentUser } from "@/lib/session"
 
 export default function SignupPage() {
   const router = useRouter()
@@ -25,7 +26,8 @@ export default function SignupPage() {
     setError(null)
 
     try {
-      await register({ email, password, name })
+      const response = await register({ email, password, name })
+      setCurrentUser(response.user)
       router.replace("/dashboard")
     } catch (err) {
       setError(err instanceof Error ? err.message : "Unable to create account")

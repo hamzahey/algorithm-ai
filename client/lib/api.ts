@@ -114,5 +114,32 @@ export async function browseJobs(filters?: BrowseJobsFilters) {
   return request(`/jobs/search${buildQuery(filters)}`)
 }
 
+export async function fetchAdminUsers() {
+  return request("/admin/users")
+}
+
+export async function fetchAdminJobs(approved?: boolean) {
+  const params = new URLSearchParams()
+  if (approved !== undefined) {
+    params.set("approved", String(approved))
+  }
+  const query = params.toString()
+  return request(`/admin/jobs${query ? `?${query}` : ""}`)
+}
+
+export async function approveAdminJob(id: string, approved: boolean) {
+  return request(`/admin/jobs/${id}/approve`, {
+    method: "PATCH",
+    headers: defaultHeaders,
+    body: JSON.stringify({ approved }),
+  })
+}
+
+export async function deleteAdminJob(id: string) {
+  return request(`/admin/jobs/${id}`, {
+    method: "DELETE",
+  })
+}
+
 export { API_BASE_URL }
 

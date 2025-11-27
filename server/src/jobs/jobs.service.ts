@@ -123,4 +123,33 @@ export class JobsService {
       },
     });
   }
+
+  async listForModeration(approved?: boolean) {
+    return this.prismaService.prisma.job.findMany({
+      where: approved !== undefined ? { approved } : undefined,
+      orderBy: { createdAt: 'desc' },
+      include: {
+        user: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+          },
+        },
+      },
+    });
+  }
+
+  async setApproval(jobId: string, approved: boolean) {
+    await this.prismaService.prisma.job.update({
+      where: { id: jobId },
+      data: { approved },
+    });
+  }
+
+  async deleteForAdmin(jobId: string) {
+    await this.prismaService.prisma.job.delete({
+      where: { id: jobId },
+    });
+  }
 }

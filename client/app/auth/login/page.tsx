@@ -7,6 +7,7 @@ import { useRouter } from "next/navigation"
 import { Briefcase } from "lucide-react"
 import { type FormEvent, useState } from "react"
 import { login } from "@/lib/api"
+import { setCurrentUser } from "@/lib/session"
 
 export default function LoginPage() {
   const router = useRouter()
@@ -21,7 +22,8 @@ export default function LoginPage() {
     setError(null)
 
     try {
-      await login({ email, password })
+      const response = await login({ email, password })
+      setCurrentUser(response.user)
       router.replace("/dashboard")
     } catch (err) {
       setError(err instanceof Error ? err.message : "Unable to sign in")

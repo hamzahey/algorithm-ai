@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation"
 import { Briefcase, Plus, Edit2, Trash2, LogOut } from "lucide-react"
 import { useEffect, useState } from "react"
 import { deleteJob, fetchJobs, signOut } from "@/lib/api"
+import { clearCurrentUser, CurrentUser, getCurrentUser } from "@/lib/session"
 
 type ApiJob = {
   id: string
@@ -20,6 +21,7 @@ type ApiJob = {
 export default function DashboardPage() {
   const [jobs, setJobs] = useState<ApiJob[]>([])
   const [isSigningOut, setIsSigningOut] = useState(false)
+  const [currentUser, setCurrentUserState] = useState<CurrentUser | null>(null)
   const router = useRouter()
 
   const [isLoading, setIsLoading] = useState(true)
@@ -54,10 +56,15 @@ export default function DashboardPage() {
     }
   }, [])
 
+  useEffect(() => {
+    setCurrentUserState(getCurrentUser())
+  }, [])
+
   const handleSignOut = async () => {
     setIsSigningOut(true)
     try {
       await signOut()
+      clearCurrentUser()
       router.replace("/auth/login")
     } catch {
       setIsSigningOut(false)
@@ -92,6 +99,13 @@ export default function DashboardPage() {
                 Browse Jobs
               </Button>
             </Link>
+            {currentUser?.isAdmin && (
+              <Link href="/admin/users">
+                <Button variant="outline" className="border-border hover:bg-muted">
+                  Admin
+                </Button>
+              </Link>
+            )}
               <Button
                 variant="outline"
                 className="border-border hover:bg-muted gap-2 bg-transparent"
