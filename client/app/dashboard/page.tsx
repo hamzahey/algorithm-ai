@@ -16,6 +16,7 @@ type ApiJob = {
   salary: string
   tags: string[]
   status: "ACTIVE" | "PAUSED" | "CLOSED" | "ARCHIVED"
+  approved: boolean
 }
 
 export default function DashboardPage() {
@@ -26,7 +27,7 @@ export default function DashboardPage() {
 
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const activeCount = jobs.filter((job) => job.status === "ACTIVE").length
+  const activeCount = jobs.filter((job) => job.status === "ACTIVE" && job.approved).length
   const statusMessage = isLoading
     ? "Loading jobs..."
     : error

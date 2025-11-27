@@ -1,3 +1,5 @@
+import type { CurrentUser } from "./session"
+
 type ApiError = {
   message?: string
   error?: string
@@ -7,6 +9,22 @@ const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000"
 
 const defaultHeaders = {
   "Content-Type": "application/json",
+}
+
+type AuthResponse = {
+  user: CurrentUser
+  accessToken: string
+}
+
+export type JobListing = {
+  id: string
+  title: string
+  company: string
+  description: string
+  salary: string
+  tags: string[]
+  status: "ACTIVE" | "PAUSED" | "CLOSED" | "ARCHIVED"
+  createdAt: string
 }
 
 async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
@@ -29,16 +47,16 @@ export async function register(payload: {
   email: string
   name: string
   password: string
-}) {
-  return request("/auth/register", {
+}): Promise<AuthResponse> {
+  return request<AuthResponse>("/auth/register", {
     method: "POST",
     headers: defaultHeaders,
     body: JSON.stringify(payload),
   })
 }
 
-export async function login(payload: { email: string; password: string }) {
-  return request("/auth/login", {
+export async function login(payload: { email: string; password: string }): Promise<AuthResponse> {
+  return request<AuthResponse>("/auth/login", {
     method: "POST",
     headers: defaultHeaders,
     body: JSON.stringify(payload),
@@ -111,7 +129,7 @@ function buildQuery(filters?: BrowseJobsFilters) {
 }
 
 export async function browseJobs(filters?: BrowseJobsFilters) {
-  return request(`/jobs/search${buildQuery(filters)}`)
+  return request<JobListing[]>(`/jobs/search${buildQuery(filters)}`)
 }
 
 export async function fetchAdminUsers() {

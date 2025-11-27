@@ -5,19 +5,10 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import Link from "next/link"
 import { Briefcase, Search, X } from "lucide-react"
-import { browseJobs } from "@/lib/api"
+import { browseJobs, type JobListing } from "@/lib/api"
 import { CurrentUser, getCurrentUser } from "@/lib/session"
 
-type ApiJob = {
-  id: string
-  title: string
-  company: string
-  description: string
-  salary: string
-  tags: string[]
-  status: "ACTIVE" | "PAUSED" | "CLOSED" | "ARCHIVED"
-  createdAt: string
-}
+type ApiJob = JobListing
 
 export default function JobsPage() {
   const [searchTitle, setSearchTitle] = useState("")
@@ -27,7 +18,7 @@ export default function JobsPage() {
   const [tagOptions, setTagOptions] = useState<string[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [currentUser, setCurrentUserState] = useState<CurrentUser | null>(null)
+  const [currentUser, setCurrentUserState] = useState<CurrentUser | null | undefined>(undefined)
 
   const activeFilterLabel =
     selectedTags.length > 0 ? `Tags (${matchMode.toUpperCase()})` : "Tags"
@@ -54,8 +45,12 @@ export default function JobsPage() {
 
         if (cancelled) return
 
-        setJobs(data)
-        const newTags = Array.from(new Set(data.flatMap((job) => job.tags)))
+        const normalizedJobs = data.map((job) => ({
+          ...job,
+          tags: job.tags.map((tag) => tag.toLowerCase()),
+        }))
+        setJobs(normalizedJobs)
+        const newTags = Array.from(new Set(normalizedJobs.flatMap((job) => job.tags)))
         setTagOptions((prev) =>
           Array.from(new Set([...prev, ...newTags])).sort((a, b) => a.localeCompare(b)),
         )
@@ -85,6 +80,8 @@ export default function JobsPage() {
     setCurrentUserState(getCurrentUser())
   }, [])
 
+  const showAuthLinks = currentUser === null
+
   return (
     <main className="min-h-screen bg-background">
       <nav className="border-b border-border sticky top-0 bg-background/80 backdrop-blur-sm z-50">
@@ -94,18 +91,29 @@ export default function JobsPage() {
             <span className="text-xl font-bold text-primary">JobHub</span>
           </Link>
           <div className="flex gap-3">
-            <Link href="/auth/login">
-              <Button variant="ghost" className="text-foreground">
-                Log In
-              </Button>
-            </Link>
-            <Link href="/auth/signup">
-              <Button className="bg-primary hover:bg-primary/90 text-primary-foreground">Sign Up</Button>
-            </Link>
+            {showAuthLinks && (
+              <>
+                <Link href="/auth/login">
+                  <Button variant="ghost" className="text-foreground">
+                    Log In
+                  </Button>
+                </Link>
+                <Link href="/auth/signup">
+                  <Button className="bg-primary hover:bg-primary/90 text-primary-foreground">Sign Up</Button>
+                </Link>
+              </>
+            )}
             {currentUser?.isAdmin && (
               <Link href="/admin/users">
                 <Button variant="outline" className="border-border hover:bg-muted">
                   Admin
+                </Button>
+              </Link>
+            )}
+            {currentUser && (
+              <Link href="/dashboard">
+                <Button variant="outline" className="border-border hover:bg-muted">
+                  Dashboard
                 </Button>
               </Link>
             )}
