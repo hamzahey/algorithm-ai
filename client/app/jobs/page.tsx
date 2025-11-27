@@ -1,95 +1,86 @@
 "use client"
 
-import { useState, useMemo } from "react"
+import { useEffect, useMemo, useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import Link from "next/link"
-import { Briefcase, MapPin, Search, X } from "lucide-react"
+import { Briefcase, Search, X } from "lucide-react"
+import { browseJobs } from "@/lib/api"
 
-// Mock job data
-const MOCK_JOBS = [
-  {
-    id: "1",
-    title: "Senior React Developer",
-    company: "TechCorp",
-    description: "Looking for an experienced React developer to join our team.",
-    salary: "$120,000 - $160,000",
-    tags: ["React", "TypeScript", "JavaScript"],
-    location: "San Francisco, CA",
-  },
-  {
-    id: "2",
-    title: "Full Stack Engineer",
-    company: "StartupXYZ",
-    description: "Help us build the next big thing. Full stack role with modern tech.",
-    salary: "$100,000 - $140,000",
-    tags: ["Node.js", "React", "PostgreSQL"],
-    location: "Remote",
-  },
-  {
-    id: "3",
-    title: "Product Designer",
-    company: "DesignStudio",
-    description: "Create beautiful and intuitive user interfaces.",
-    salary: "$90,000 - $130,000",
-    tags: ["UI/UX", "Figma", "Design Systems"],
-    location: "New York, NY",
-  },
-  {
-    id: "4",
-    title: "DevOps Engineer",
-    company: "CloudServices",
-    description: "Manage and optimize our cloud infrastructure.",
-    salary: "$110,000 - $150,000",
-    tags: ["Kubernetes", "AWS", "Docker"],
-    location: "Austin, TX",
-  },
-  {
-    id: "5",
-    title: "Data Scientist",
-    company: "DataCorp",
-    description: "Analyze complex datasets and build ML models.",
-    salary: "$130,000 - $170,000",
-    tags: ["Python", "Machine Learning", "Data Analysis"],
-    location: "Boston, MA",
-  },
-  {
-    id: "6",
-    title: "Junior Developer",
-    company: "TechCorp",
-    description: "Start your development career with us.",
-    salary: "$60,000 - $90,000",
-    tags: ["JavaScript", "React", "CSS"],
-    location: "Remote",
-  },
-]
+type ApiJob = {
+  id: string
+  title: string
+  company: string
+  description: string
+  salary: string
+  tags: string[]
+  status: "ACTIVE" | "PAUSED" | "CLOSED" | "ARCHIVED"
+  createdAt: string
+}
 
 export default function JobsPage() {
   const [searchTitle, setSearchTitle] = useState("")
   const [selectedTags, setSelectedTags] = useState<string[]>([])
+  const [matchMode, setMatchMode] = useState<"and" | "or">("and")
+  const [jobs, setJobs] = useState<ApiJob[]>([])
+  const [tagOptions, setTagOptions] = useState<string[]>([])
+  const [isLoading, setIsLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
 
-  const allTags = Array.from(new Set(MOCK_JOBS.flatMap((job) => job.tags)))
+  const activeFilterLabel =
+    selectedTags.length > 0 ? `Tags (${matchMode.toUpperCase()})` : "Tags"
 
-  const filteredJobs = useMemo(() => {
-    return MOCK_JOBS.filter((job) => {
-      const titleMatch =
-        job.title.toLowerCase().includes(searchTitle.toLowerCase()) ||
-        job.company.toLowerCase().includes(searchTitle.toLowerCase())
+  const combinedTagOptions = useMemo(() => {
+    const tags = new Set(selectedTags)
+    jobs.forEach((job) => job.tags.forEach((tag) => tags.add(tag)))
+    tagOptions.forEach((tag) => tags.add(tag))
+    return Array.from(tags).sort((a, b) => a.localeCompare(b))
+  }, [jobs, selectedTags, tagOptions])
 
-      if (selectedTags.length === 0) return titleMatch
+  useEffect(() => {
+    let cancelled = false
+    const handler = setTimeout(async () => {
+      setIsLoading(true)
+      setError(null)
 
-      const tagsMatch = selectedTags.some((tag) => job.tags.includes(tag))
-      return titleMatch && tagsMatch
-    })
-  }, [searchTitle, selectedTags])
+      try {
+        const data = await browseJobs({
+          search: searchTitle,
+          tags: selectedTags,
+          mode: matchMode,
+        })
+
+        if (cancelled) return
+
+        setJobs(data)
+        const newTags = Array.from(new Set(data.flatMap((job) => job.tags)))
+        setTagOptions((prev) =>
+          Array.from(new Set([...prev, ...newTags])).sort((a, b) => a.localeCompare(b)),
+        )
+      } catch (err) {
+        if (cancelled) return
+        setError(err instanceof Error ? err.message : "Unable to load jobs")
+      } finally {
+        if (!cancelled) {
+          setIsLoading(false)
+        }
+      }
+    }, 250)
+
+    return () => {
+      cancelled = true
+      clearTimeout(handler)
+    }
+  }, [searchTitle, selectedTags, matchMode])
 
   const toggleTag = (tag: string) => {
-    setSelectedTags((prev) => (prev.includes(tag) ? prev.filter((t) => t !== tag) : [...prev, tag]))
+    setSelectedTags((prev) =>
+      prev.includes(tag) ? prev.filter((t) => t !== tag) : [...prev, tag],
+    )
   }
 
   return (
     <main className="min-h-screen bg-background">
-      {/* Navigation */}
       <nav className="border-b border-border sticky top-0 bg-background/80 backdrop-blur-sm z-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">
           <Link href="/" className="flex items-center gap-2 group">
@@ -110,61 +101,84 @@ export default function JobsPage() {
       </nav>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        {/* Header */}
         <div className="mb-12">
           <h1 className="text-4xl font-bold text-foreground mb-2">Discover Opportunities</h1>
-          <p className="text-muted-foreground">Browse {MOCK_JOBS.length} available positions</p>
+          <p className="text-muted-foreground">
+            {isLoading ? "Loading jobs…" : `${jobs.length} positions ready for you`}
+          </p>
         </div>
 
-        {/* Search and Filters */}
         <div className="grid lg:grid-cols-4 gap-8">
-          {/* Sidebar Filters */}
           <div className="space-y-6">
             <div>
-              <h3 className="font-semibold text-foreground mb-3">Search by Tag</h3>
-              <div className="space-y-2">
-                {allTags.map((tag) => (
-                  <label
-                    key={tag}
-                    className="flex items-center gap-2 cursor-pointer hover:text-primary transition-colors"
+              <div className="flex flex-wrap items-center justify-between gap-4 mb-3">
+                <div>
+                  <h3 className="font-semibold text-foreground">{activeFilterLabel}</h3>
+                  <div className="text-xs text-muted-foreground">{matchMode === "and" ? "All tags" : "Any tag"}</div>
+                </div>
+                <div className="flex gap-2">
+                  <Button
+                    variant={matchMode === "and" ? "default" : "outline"}
+                    className="text-xs uppercase tracking-wide"
+                    onClick={() => setMatchMode("and")}
                   >
-                    <input
-                      type="checkbox"
-                      checked={selectedTags.includes(tag)}
-                      onChange={() => toggleTag(tag)}
-                      className="rounded border-border"
-                    />
-                    <span className="text-sm text-foreground">{tag}</span>
-                  </label>
-                ))}
+                    AND
+                  </Button>
+                  <Button
+                    variant={matchMode === "or" ? "default" : "outline"}
+                    className="text-xs uppercase tracking-wide"
+                    onClick={() => setMatchMode("or")}
+                  >
+                    OR
+                  </Button>
+                </div>
+              </div>
+              <div className="space-y-2">
+                {combinedTagOptions.length === 0 && !isLoading ? (
+                  <p className="text-sm text-muted-foreground">No tags available yet.</p>
+                ) : (
+                  combinedTagOptions.map((tag) => (
+                    <label
+                      key={tag}
+                      className="flex items-center gap-2 cursor-pointer hover:text-primary transition-colors"
+                    >
+                      <input
+                        type="checkbox"
+                        checked={selectedTags.includes(tag)}
+                        onChange={() => toggleTag(tag)}
+                        className="rounded border-border"
+                      />
+                      <span className="text-sm text-foreground">{tag}</span>
+                    </label>
+                  ))
+                )}
               </div>
             </div>
 
-            {selectedTags.length > 0 && (
-              <Button
-                variant="outline"
-                onClick={() => setSelectedTags([])}
-                className="w-full border-border hover:bg-muted"
-              >
-                Clear Filters
-              </Button>
-            )}
+            <div className="space-y-2">
+              {selectedTags.length > 0 && (
+                <Button
+                  variant="outline"
+                  onClick={() => setSelectedTags([])}
+                  className="w-full border-border hover:bg-muted"
+                >
+                  Clear Filters
+                </Button>
+              )}
+            </div>
           </div>
 
-          {/* Main Content */}
           <div className="lg:col-span-3 space-y-6">
-            {/* Search Bar */}
             <div className="relative">
               <Search className="absolute left-3 top-3 w-5 h-5 text-muted-foreground" />
               <Input
                 placeholder="Search by title or company..."
                 value={searchTitle}
-                onChange={(e) => setSearchTitle(e.target.value)}
+                onChange={(event) => setSearchTitle(event.target.value)}
                 className="pl-10 bg-card border-border text-foreground placeholder:text-muted-foreground"
               />
             </div>
 
-            {/* Active Filters */}
             {selectedTags.length > 0 && (
               <div className="flex flex-wrap gap-2">
                 {selectedTags.map((tag) => (
@@ -180,10 +194,24 @@ export default function JobsPage() {
               </div>
             )}
 
-            {/* Job Listings */}
+            <div className="flex items-center justify-between text-sm text-muted-foreground">
+              <span>{isLoading ? "Searching…" : `${jobs.length} positions`}</span>
+              {error && <span className="text-destructive">{error}</span>}
+            </div>
+
             <div className="space-y-4">
-              {filteredJobs.length > 0 ? (
-                filteredJobs.map((job) => (
+              {isLoading ? (
+                <div className="bg-card border border-border rounded-lg p-12 text-center text-muted-foreground">
+                  Loading jobs…
+                </div>
+              ) : jobs.length === 0 ? (
+                <div className="bg-card border border-border rounded-lg p-12 text-center">
+                  <Search className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+                  <h3 className="text-lg font-semibold text-foreground mb-2">No jobs found</h3>
+                  <p className="text-muted-foreground">Try different filters or keywords</p>
+                </div>
+              ) : (
+                jobs.map((job) => (
                   <Link
                     key={job.id}
                     href={`/jobs/${job.id}`}
@@ -212,18 +240,14 @@ export default function JobsPage() {
                       ))}
                     </div>
 
-                    <div className="flex items-center text-muted-foreground text-sm">
-                      <MapPin className="w-4 h-4 mr-2" />
-                      {job.location}
+                    <div className="flex justify-between items-center text-xs uppercase tracking-wide text-muted-foreground">
+                      <span>{job.status}</span>
+                      <span>
+                        Posted {new Date(job.createdAt).toLocaleDateString(undefined, { month: "short", day: "numeric" })}
+                      </span>
                     </div>
                   </Link>
                 ))
-              ) : (
-                <div className="bg-card border border-border rounded-lg p-12 text-center">
-                  <Search className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-                  <h3 className="text-lg font-semibold text-foreground mb-2">No jobs found</h3>
-                  <p className="text-muted-foreground">Try adjusting your search filters</p>
-                </div>
               )}
             </div>
           </div>
@@ -232,3 +256,4 @@ export default function JobsPage() {
     </main>
   )
 }
+

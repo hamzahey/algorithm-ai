@@ -87,7 +87,7 @@ export default function DashboardPage() {
             <span className="text-xl font-bold text-primary">JobHub</span>
           </Link>
           <div className="flex gap-3">
-            <Link href="/dashboard/post-job">
+            <Link href="/jobs">
               <Button variant="ghost" className="text-foreground">
                 Browse Jobs
               </Button>
