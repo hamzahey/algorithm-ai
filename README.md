@@ -2,6 +2,16 @@
 
 JobHub is a Next.js + NestJS monorepo that powers the public job board experience (`client/`) and the API/accounting layer (`server/`). This document gathers the commands, environment variables, and deployment steps you need to take it from local development to a full Railway deployment.
 
+## Live Deployment
+
+The application is currently deployed on Railway:
+
+- **Frontend**: [https://clever-reprieve-production-27a1.up.railway.app](https://clever-reprieve-production-27a1.up.railway.app)
+- **Backend API**: [https://algorithm-ai-production-d3e1.up.railway.app](https://algorithm-ai-production-d3e1.up.railway.app)
+- **Health Check**: [https://algorithm-ai-production-d3e1.up.railway.app/health](https://algorithm-ai-production-d3e1.up.railway.app/health)
+
+## Health Check Endpoint
+
 ## Workspace layout
 
 | Directory | Purpose |

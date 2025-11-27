@@ -21,9 +21,10 @@ export class AuthController {
 
   private readonly cookieOptions = {
     httpOnly: true,
-    sameSite: 'lax' as const,
-    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'none' as const, // Required for cross-origin
+    secure: true, // Required when sameSite is 'none'
     maxAge: 60 * 60 * 1000,
+    domain: undefined, // Let browser handle domain
   };
 
   constructor(private readonly authService: AuthService) {}
