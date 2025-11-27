@@ -1,8 +1,19 @@
+"use client";
+
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { Briefcase, Search, Users, Zap } from "lucide-react";
+import { CurrentUser, getCurrentUser } from "@/lib/session";
 
 export default function Home() {
+  const [currentUser, setCurrentUserState] = useState<CurrentUser | null | undefined>(undefined);
+
+  useEffect(() => {
+    setCurrentUserState(getCurrentUser());
+  }, []);
+
+  const showAuthLinks = currentUser === null;
   return (
     <main className="min-h-screen bg-gradient-to-br from-background via-background to-muted">
       {/* Navigation */}
@@ -13,19 +24,23 @@ export default function Home() {
             <span className="text-xl font-bold text-primary">JobHub</span>
           </Link>
           <div className="flex gap-3">
-            <Link href="/auth/login">
-              <Button
-                variant="ghost"
-                className="text-foreground hover:text-primary"
-              >
-                Log In
-              </Button>
-            </Link>
-            <Link href="/auth/signup">
-              <Button className="bg-primary hover:bg-primary/90 text-primary-foreground">
-                Sign Up
-              </Button>
-            </Link>
+            {showAuthLinks && (
+              <>
+                <Link href="/auth/login">
+                  <Button
+                    variant="ghost"
+                    className="text-foreground hover:text-primary"
+                  >
+                    Log In
+                  </Button>
+                </Link>
+                <Link href="/auth/signup">
+                  <Button className="bg-primary hover:bg-primary/90 text-primary-foreground">
+                    Sign Up
+                  </Button>
+                </Link>
+              </>
+            )}
           </div>
         </div>
       </nav>
