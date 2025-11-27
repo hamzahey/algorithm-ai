@@ -51,5 +51,47 @@ export async function signOut() {
   })
 }
 
+export async function createJob(payload: {
+  title: string
+  company: string
+  description: string
+  salary: string
+  tags: string[]
+}) {
+  return request("/jobs", {
+    method: "POST",
+    headers: defaultHeaders,
+    body: JSON.stringify(payload),
+  })
+}
+
+export async function fetchJobs() {
+  return request("/jobs")
+}
+
+export async function deleteJob(id: string) {
+  return request(`/jobs/${id}`, {
+    method: "DELETE",
+  })
+}
+
+export async function fetchJob(id: string) {
+  return request(`/jobs/${id}`)
+}
+
+export async function updateJob(id: string, payload: {
+  title: string
+  company: string
+  description: string
+  salary: string
+  tags: string[]
+}) {
+  return request(`/jobs/${id}`, {
+    method: "PATCH",
+    headers: defaultHeaders,
+    body: JSON.stringify(payload),
+  })
+}
+
 export { API_BASE_URL }
 
