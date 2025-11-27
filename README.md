@@ -159,6 +159,58 @@ Object literal may only specify known properties, and 'approved' does not exist 
 
 **Prevention**: Always run `pnpm prisma generate` (or `pnpm prisma migrate dev` which does it automatically) after modifying the Prisma schema. In CI/CD pipelines, ensure Prisma generation runs as part of the build step.
 
+### Bug: Authentication with cookies failed in cross-origin deployment
+
+**Problem**: After deploying the frontend and backend to Railway on different domains, authentication stopped working. Users could log in successfully (200 OK response), but subsequent authenticated requests (like `/jobs`, `/auth/signout`) returned 401 Unauthorized errors. The browser console showed: "this attempt to set a cookie via cookie header was blocked due to user preferences."
+
+**Initial implementation**: 
+- Authentication used HTTP-only cookies to store JWT tokens
+- Backend set cookies with `httpOnly: true`, `sameSite: 'lax'`, and `secure: true` in production
+- JWT strategy extracted tokens from cookies using `cookieExtractor`
+- Frontend relied on browser automatically sending cookies with `credentials: "include"`
+
+**Why it worked locally**: 
+- Both frontend (`http://localhost:3000`) and backend (`http://localhost:8000`) ran on localhost
+- Same-origin requests allowed cookies to work seamlessly
+- No cross-origin restrictions applied
+
+**Why it failed in production**:
+- Frontend deployed to: `clever-reprieve-production-27a1.up.railway.app`
+- Backend deployed to: `algorithm-ai-production-d3e1.up.railway.app`
+- Different domains = cross-origin requests
+- Browser blocked third-party cookies (different domains)
+- Even after updating to `sameSite: 'none'` and `secure: true`, modern browsers blocked the cookies due to privacy settings
+- Cookies were set correctly (visible in response headers) but browser refused to store/send them
+
+**Debugging steps**:
+1. Verified login endpoint returned 200 OK with `Set-Cookie` header containing `SameSite=None; Secure`
+2. Checked browser DevTools → Application → Cookies - cookie was not present
+3. Confirmed CORS was configured correctly (`access-control-allow-credentials: true`)
+4. Tested in different browsers - all blocked third-party cookies
+5. Realized cookies are unreliable for cross-origin authentication in modern browsers
+
+**Solution**: Migrated from cookie-based to Authorization header-based authentication:
+1. **Backend**: Already supported Bearer tokens via `ExtractJwt.fromAuthHeaderAsBearerToken()` in JWT strategy (no changes needed)
+2. **Frontend**: 
+   - Store JWT token in `localStorage` after login/register
+   - Send token in `Authorization: Bearer <token>` header for all API requests
+   - Clear token from `localStorage` on signout
+   - Removed dependency on cookies entirely
+
+**Key changes**:
+- Added token storage functions to `client/lib/session.ts` (`getAuthToken`, `setAuthToken`, `clearAuthToken`)
+- Updated `client/lib/api.ts` `request()` function to include Authorization header
+- Modified `register()` and `login()` to store tokens in localStorage
+- Updated `signOut()` to clear tokens
+
+**Why Authorization headers work better**:
+- Headers work reliably across different domains (no browser restrictions)
+- More explicit and easier to debug
+- Standard practice for JWT authentication in SPAs
+- No dependency on browser cookie policies
+
+**Prevention**: For cross-origin deployments, prefer Authorization headers over cookies. If using cookies, ensure both services are on the same domain (e.g., `api.example.com` and `app.example.com` work better than completely different domains).
+
 ### Additional tips
 
 - Keep `.env` files out of version control; use Railway's environment variables instead.
