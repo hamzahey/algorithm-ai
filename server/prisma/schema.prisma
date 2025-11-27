@@ -36,8 +36,8 @@ model Job {
   salary      String?
   tags        String[]   @default([])
   status      JobStatus  @default(ACTIVE)
-  approved    Boolean    @default(false)
-  
+  approved    Boolean    @default(true)
+
   userId    String   @map("user_id")
   user      User  @relation(fields: [userId], references: [id])
   createdAt DateTime @default(now()) @map("created_at")

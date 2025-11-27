@@ -73,6 +73,11 @@ export default function AdminUsersPage() {
             <h1 className="text-3xl font-bold text-foreground">Admin Console</h1>
             <p className="text-muted-foreground text-sm">Overview of registered users</p>
           </div>
+          <Link href="/admin/jobs">
+            <Button variant="outline" className="border-border hover:bg-muted">
+              Moderate Jobs
+            </Button>
+          </Link>
         </div>
 
         {isLoading ? (
