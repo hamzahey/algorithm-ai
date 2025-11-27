@@ -54,7 +54,9 @@ export default function JobsPage() {
 
         setJobs(data)
         const newTags = Array.from(new Set(data.flatMap((job) => job.tags)))
-        setTagOptions(newTags)
+        setTagOptions((prev) =>
+          Array.from(new Set([...prev, ...newTags])).sort((a, b) => a.localeCompare(b)),
+        )
       } catch (err) {
         if (cancelled) return
         setError(err instanceof Error ? err.message : "Unable to load jobs")
@@ -109,9 +111,27 @@ export default function JobsPage() {
         <div className="grid lg:grid-cols-4 gap-8">
           <div className="space-y-6">
             <div>
-              <div className="flex items-center justify-between mb-3">
-                <h3 className="font-semibold text-foreground">{activeFilterLabel}</h3>
-                <div className="text-xs text-muted-foreground">{matchMode === "and" ? "All tags" : "Any tag"}</div>
+              <div className="flex flex-wrap items-center justify-between gap-4 mb-3">
+                <div>
+                  <h3 className="font-semibold text-foreground">{activeFilterLabel}</h3>
+                  <div className="text-xs text-muted-foreground">{matchMode === "and" ? "All tags" : "Any tag"}</div>
+                </div>
+                <div className="flex gap-2">
+                  <Button
+                    variant={matchMode === "and" ? "default" : "outline"}
+                    className="text-xs uppercase tracking-wide"
+                    onClick={() => setMatchMode("and")}
+                  >
+                    AND
+                  </Button>
+                  <Button
+                    variant={matchMode === "or" ? "default" : "outline"}
+                    className="text-xs uppercase tracking-wide"
+                    onClick={() => setMatchMode("or")}
+                  >
+                    OR
+                  </Button>
+                </div>
               </div>
               <div className="space-y-2">
                 {combinedTagOptions.length === 0 && !isLoading ? (
@@ -136,22 +156,6 @@ export default function JobsPage() {
             </div>
 
             <div className="space-y-2">
-              <div className="flex gap-2">
-                <Button
-                  variant={matchMode === "and" ? "default" : "outline"}
-                  className="w-full text-xs uppercase tracking-wide"
-                  onClick={() => setMatchMode("and")}
-                >
-                  AND
-                </Button>
-                <Button
-                  variant={matchMode === "or" ? "default" : "outline"}
-                  className="w-full text-xs uppercase tracking-wide"
-                  onClick={() => setMatchMode("or")}
-                >
-                  OR
-                </Button>
-              </div>
               {selectedTags.length > 0 && (
                 <Button
                   variant="outline"
