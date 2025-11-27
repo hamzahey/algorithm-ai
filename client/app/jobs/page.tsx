@@ -45,8 +45,12 @@ export default function JobsPage() {
 
         if (cancelled) return
 
-        setJobs(data)
-        const newTags = Array.from(new Set(data.flatMap((job) => job.tags)))
+        const normalizedJobs = data.map((job) => ({
+          ...job,
+          tags: job.tags.map((tag) => tag.toLowerCase()),
+        }))
+        setJobs(normalizedJobs)
+        const newTags = Array.from(new Set(normalizedJobs.flatMap((job) => job.tags)))
         setTagOptions((prev) =>
           Array.from(new Set([...prev, ...newTags])).sort((a, b) => a.localeCompare(b)),
         )
@@ -103,6 +107,13 @@ export default function JobsPage() {
               <Link href="/admin/users">
                 <Button variant="outline" className="border-border hover:bg-muted">
                   Admin
+                </Button>
+              </Link>
+            )}
+            {currentUser && (
+              <Link href="/dashboard">
+                <Button variant="outline" className="border-border hover:bg-muted">
+                  Dashboard
                 </Button>
               </Link>
             )}

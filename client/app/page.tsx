@@ -67,7 +67,7 @@ export default function Home() {
                   Browse Jobs
                 </Button>
               </Link>
-              <Link href="/auth/signup">
+              <Link href={currentUser ? "/dashboard/post-job" : "/auth/signup"}>
                 <Button
                   size="lg"
                   variant="outline"

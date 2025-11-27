@@ -20,7 +20,7 @@ export class JobsService {
   }
 
   async create(userId: string, dto: CreateJobDto) {
-    const sanitizedTags = dto.tags.map((tag) => tag.trim()).filter(Boolean);
+    const sanitizedTags = this.normalizeTags(dto.tags);
 
     return this.prismaService.prisma.job.create({
       data: {
@@ -59,13 +59,22 @@ export class JobsService {
     if (dto.company) updateData.company = dto.company;
     if (dto.description) updateData.description = dto.description;
     if (dto.salary) updateData.salary = dto.salary;
-    if (dto.tags)
-      updateData.tags = dto.tags.map((tag) => tag.trim()).filter(Boolean);
+    if (dto.tags) updateData.tags = this.normalizeTags(dto.tags);
 
     return this.prismaService.prisma.job.update({
       where: { id: jobId },
       data: updateData,
     });
+  }
+
+  private normalizeTags(tags: string[]) {
+    return Array.from(
+      new Set(
+        tags
+          .map((tag) => tag.trim().toLowerCase())
+          .filter((tag) => tag.length > 0),
+      ),
+    );
   }
 
   async delete(userId: string, jobId: string) {
@@ -106,7 +115,10 @@ export class JobsService {
       });
     }
 
-    const whereClause = predicates.length ? { AND: predicates } : undefined;
+    const whereClause = { approved: true } as Prisma.JobWhereInput;
+    if (predicates.length) {
+      whereClause.AND = predicates;
+    }
 
     return this.prismaService.prisma.job.findMany({
       where: whereClause,
@@ -125,8 +137,9 @@ export class JobsService {
   }
 
   async listForModeration(approved?: boolean) {
+    const where = approved === undefined ? undefined : ({ approved } as Prisma.JobWhereInput);
     return this.prismaService.prisma.job.findMany({
-      where: approved !== undefined ? { approved } : undefined,
+      where,
       orderBy: { createdAt: 'desc' },
       include: {
         user: {
@@ -143,7 +156,7 @@ export class JobsService {
   async setApproval(jobId: string, approved: boolean) {
     await this.prismaService.prisma.job.update({
       where: { id: jobId },
-      data: { approved },
+      data: { approved } as Prisma.JobUpdateInput,
     });
   }
 
