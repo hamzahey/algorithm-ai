@@ -43,6 +43,7 @@ This project includes an `AdminSeedService` that runs each time NestJS boots: wh
    pnpm install
    cp ../env.example .env          # or import required envs from another file
    pnpm prisma migrate dev         # sets up the database
+   npx prisma generate             # Necessary to avoid ts errors
    pnpm run start:dev              # runs NestJS with hot reload
    ```
 
@@ -97,10 +98,63 @@ Railway can host both services together. Create a single Railway project and add
 
 Railway exposes a URL per service. Point `NEXT_PUBLIC_API_URL` at the backend URL and allow CORS by setting `CLIENT_URL` on the Nest service. You can also add custom domains later once both services are stable.
 
-## Additional tips
+## Health Check Endpoint
 
-- Keep `.env` files out of version control; use Railway’s environment variables instead.
+The backend exposes a diagnostic endpoint at `/health` that reports:
+
+- **App status**: `healthy` or `unhealthy` based on database connectivity
+- **Uptime**: Seconds since the server started
+- **Database connection**: Whether Prisma can query the database
+- **Environment status**: Node environment, port, and presence of required env vars (values are masked)
+
+Example response:
+```json
+{
+  "status": "healthy",
+  "timestamp": "2025-01-27T12:00:00.000Z",
+  "uptime": 3600,
+  "database": {
+    "connected": true
+  },
+  "environment": {
+    "nodeEnv": "production",
+    "port": "8000",
+    "hasDatabaseUrl": true,
+    "hasJwtSecret": true
+  }
+}
+```
+
+Use this endpoint to monitor service health in production and verify database connectivity during deployments.
+
+## Debug Notes
+
+### Bug: Prisma TypeScript errors after adding `approved` field to Job model
+
+**Problem**: After adding the `approved: Boolean` field to the Prisma schema and running migrations, TypeScript started throwing errors like:
+```
+Type '{ approved: boolean; } | undefined' is not assignable to type 'JobWhereInput | undefined'.
+Object literal may only specify known properties, and 'approved' does not exist in type 'JobWhereInput'.
+```
+
+**Root cause**: The Prisma Client TypeScript types are generated from the schema. When you modify the schema, you must regenerate the client to update the types. The IDE/TypeScript compiler was still using the old generated types that didn't include the `approved` field.
+
+**Debugging steps**:
+1. Checked the Prisma schema (`server/prisma/schema.prisma`) - confirmed `approved` field was present
+2. Verified migrations ran successfully - the database had the column
+3. Checked generated Prisma client types in `node_modules/@prisma/client` - found they were outdated
+4. Realized the client wasn't regenerated after schema changes
+
+**Solution**: Ran `pnpm prisma generate` in the `server/` directory to regenerate the Prisma Client with updated TypeScript types. This refreshed all the `JobWhereInput`, `JobUpdateInput`, and related types to include the `approved` field.
+
+**Prevention**: Always run `pnpm prisma generate` (or `pnpm prisma migrate dev` which does it automatically) after modifying the Prisma schema. In CI/CD pipelines, ensure Prisma generation runs as part of the build step.
+
+### Additional tips
+
+- Keep `.env` files out of version control; use Railway's environment variables instead.
 - When you change the Prisma schema, re-run `pnpm prisma migrate dev` locally and commit the generated migration under `server/prisma/migrations`.
+- Always run `pnpm prisma generate` after schema changes to update TypeScript types.
 - Monitor Railway logs for both services to troubleshoot cross-service requests and auth flows.
+- Use the `/health` endpoint to verify database connectivity during deployments.
 
 
