@@ -1,4 +1,5 @@
 import type { CurrentUser } from "./session"
+import { getAuthToken, setAuthToken, clearAuthToken } from "./session"
 
 type ApiError = {
   message?: string
@@ -7,9 +8,7 @@ type ApiError = {
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000"
 
-const defaultHeaders = {
-  "Content-Type": "application/json",
-}
+// Headers are now handled in the request function
 
 type AuthResponse = {
   user: CurrentUser
@@ -28,9 +27,22 @@ export type JobListing = {
 }
 
 async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
+  // Get token from localStorage
+  const token = getAuthToken()
+  
+  // Build headers with Authorization if token exists
+  const headers = new Headers(init.headers)
+  if (!headers.has("Content-Type")) {
+    headers.set("Content-Type", "application/json")
+  }
+  if (token) {
+    headers.set("Authorization", `Bearer ${token}`)
+  }
+
   const response = await fetch(`${API_BASE_URL}${path}`, {
-    credentials: "include",
+    credentials: "include", // Keep for CORS
     ...init,
+    headers,
   })
 
   if (!response.ok) {
@@ -48,25 +60,42 @@ export async function register(payload: {
   name: string
   password: string
 }): Promise<AuthResponse> {
-  return request<AuthResponse>("/auth/register", {
+  const response = await request<AuthResponse>("/auth/register", {
     method: "POST",
-    headers: defaultHeaders,
     body: JSON.stringify(payload),
   })
+  
+  // Store token in localStorage
+  if (response.accessToken) {
+    setAuthToken(response.accessToken)
+  }
+  
+  return response
 }
 
 export async function login(payload: { email: string; password: string }): Promise<AuthResponse> {
-  return request<AuthResponse>("/auth/login", {
+  const response = await request<AuthResponse>("/auth/login", {
     method: "POST",
-    headers: defaultHeaders,
     body: JSON.stringify(payload),
   })
+  
+  // Store token in localStorage
+  if (response.accessToken) {
+    setAuthToken(response.accessToken)
+  }
+  
+  return response
 }
 
 export async function signOut() {
-  return request("/auth/signout", {
-    method: "POST",
-  })
+  try {
+    await request("/auth/signout", {
+      method: "POST",
+    })
+  } finally {
+    // Always clear token even if request fails
+    clearAuthToken()
+  }
 }
 
 export async function createJob(payload: {
@@ -78,7 +107,6 @@ export async function createJob(payload: {
 }) {
   return request("/jobs", {
     method: "POST",
-    headers: defaultHeaders,
     body: JSON.stringify(payload),
   })
 }
@@ -106,7 +134,6 @@ export async function updateJob(id: string, payload: {
 }) {
   return request(`/jobs/${id}`, {
     method: "PATCH",
-    headers: defaultHeaders,
     body: JSON.stringify(payload),
   })
 }
@@ -148,7 +175,6 @@ export async function fetchAdminJobs(approved?: boolean) {
 export async function approveAdminJob(id: string, approved: boolean) {
   return request(`/admin/jobs/${id}/approve`, {
     method: "PATCH",
-    headers: defaultHeaders,
     body: JSON.stringify({ approved }),
   })
 }
